@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Hanken_Grotesk } from 'next/font/google';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const hankenGrotesk = Hanken_Grotesk({
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${hankenGrotesk.variable} font-sans antialiased`}>
         {children}
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

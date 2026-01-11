@@ -121,3 +121,72 @@ export async function createPage(
     };
   }
 }
+
+// Save page content action
+export async function savePageContent(
+  pageId: string,
+  content: any
+): Promise<ActionResponse> {
+  try {
+    // 1. Authentication check
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user?.id) {
+      return {
+        success: false,
+        error: 'You must be logged in to save page content',
+      };
+    }
+
+    const userId = session.user.id;
+
+    // 2. Check if user owns the site that this page belongs to
+    const page = await prisma.page.findUnique({
+      where: { id: pageId },
+      select: {
+        site: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    if (!page) {
+      return {
+        success: false,
+        error: 'Page not found',
+      };
+    }
+
+    if (page.site.userId !== userId) {
+      return {
+        success: false,
+        error: 'You do not have permission to edit this page',
+      };
+    }
+
+    // 3. Update page content
+    const updatedPage = await prisma.page.update({
+      where: { id: pageId },
+      data: { content },
+    });
+
+    // 4. Revalidate the public page path (assuming pages are accessible via slug)
+    revalidatePath(`/site/${pageId}`);
+    revalidatePath(`/app/site/*/editor/${pageId}`);
+
+    return {
+      success: true,
+      data: updatedPage,
+    };
+  } catch (error) {
+    console.error('Error saving page content:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
